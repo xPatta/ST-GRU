@@ -37,23 +37,7 @@ We show quantitative results on the BAIR robot pushing dataset for predicting 28
 
 Moving MNIST
 
-![mnist](./pic/mnist.png)
-
-KTH
-
-![kth](./pic/kth.png)
-
-BAIR (We zoom in on the area in the red box)
-
-![bair](./pic/bair.png)
-
-Traffic4Cast
-
-![Traffic4Cast](./pic/Traffic4Cast.png)
-
-Radar echoes
-
-![radar](./pic/radar.png)
+![mnist](./pic/results_STGRU_mnist.png)
 
 ## Quantitative results on Moving MNIST and KTH in LPIPS
 
