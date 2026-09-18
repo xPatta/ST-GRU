@@ -1,114 +1,178 @@
-# PredRNN: A Recurrent Neural Network for Spatiotemporal Predictive Learning (TPAMI 2022)
+# ST-GRU PredRNN: A GRU-Based Reformulation of PredRNN for Video Prediction
 
-The predictive learning of spatiotemporal sequences aims to generate future images by learning from the historical context, where the visual dynamics are believed to have modular structures that can be learned with compositional subsystems.
+This repository contains our implementation of a **Spatiotemporal GRU (ST-GRU)** variant of **PredRNN-V2**.
 
-## Initial version at NeurIPS 2017
+The goal of this work is to investigate whether the original **Spatiotemporal LSTM (ST-LSTM)** building blocks of PredRNN can be replaced by a simpler **Spatiotemporal GRU (ST-GRU)** while maintaining competitive video prediction performance.
 
-This repo first contains a PyTorch implementation of **PredRNN** (2017) [[paper](https://papers.nips.cc/paper/6689-predrnn-recurrent-neural-networks-for-predictive-learning-using-spatiotemporal-lstms)], a recurrent network with a pair of memory cells that operate in nearly independent transition manners, and finally form unified representations of the complex environment.
+To test this hyhpothesis, our experiments focus on the **Moving MNIST** benchmark.
 
-Concretely, besides the original memory cell of LSTM, this network is featured by a zigzag memory flow that propagates in both bottom-up and top-down directions across all layers, enabling the learned visual dynamics at different levels of RNNs to communicate.
+The metovitation, methods and results are thoroughly described in the attached [report](https://github.com/xPatta/ST-GRU/STGRU_predRNN_v2.pdf).
 
-## New in PredRNN-V2 at TPAMI 2022
+## Project Overview
 
-This repo also includes the implementation of **PredRNN-V2** [[paper](https://arxiv.org/pdf/2103.09504.pdf)], which improves PredRNN in the following three aspects.
+**PredRNN-V2** [[paper](https://arxiv.org/pdf/2103.09504.pdf)] achieves state-of-the-art video prediction through a dual-memory Spatiotemporal LSTM (ST-LSTM), which models both temporal and spatial dynamics, and a reverse scheduled sampling that forces to model to learn long term dynamics.
 
+In this project we redesign the recurrent cell by replacing every ST-LSTM in the predRNN-V2 architecture, with a novel **ST-GRU** cell. Inspired by the standard GRU, and adapting it to account for spatio-temporal features, similarly to what has been done with the ST-LSTM cell, ST-GRU:
 
-#### 1. Memory-Decoupled ST-LSTM
+- replaces the multiple LSTM gates with GRU update and reset gates,
+- removes the explicit temporal memory cell by integrating it into the hidden state,
+- retains the spatiotemporal memory flow used by PredRNN,
+- aims to reduce architectural complexity and computational cost.
 
-We find that the pair of memory cells in PredRNN contain undesirable, redundant features, and thus present a memory decoupling loss to encourage them to learn modular structures of visual dynamics. 
+The remainder of the PredRNN-V2 framework, including reverse scheduled sampling, is preserved.
 
-![decouple](./pic/decouple.png)
+<p align="center">
+  <img src="pic/ST-LSTM.png" width="45%" />
+  <img src="pic/ST-GRU.png" width="45%" />
+</p>
 
-#### 2. Reverse Scheduled Sampling
-
-Reverse scheduled sampling is a new curriculum learning strategy for seq-to-seq RNNs. As opposed to scheduled sampling, it gradually changes the training process of the PredRNN encoder from using the previously generated frame to using the previous ground truth. **Benefit:** It forces the model to learn long-term dynamics from context frames. 
-
-[comment]: <![rss](./pic/rss.png)>
-
-#### 3. Action-Conditioned Video Prediction
-
-We further extend PredRNN to action-conditioned video prediction. By fusing the actions with hidden states, PredRNN and PredRNN-V2 show highly competitive performance in long-term forecasting. They are potential to serve as the base dynamic model in model-based visual control.
-
-We show quantitative results on the BAIR robot pushing dataset for predicting 28 future frames from 2 observations.
-
-![action](./pic/action_based.png)
-
-## Showcases
-
-Moving MNIST
-
-![mnist](./pic/results_STGRU_mnist.png)
-
-## Quantitative results on Moving MNIST and KTH in LPIPS
-
-LPIPS is more sensitive to perceptual human judgments, the lower the better.
-
-|        | Moving MNIST | KTH action |
-|  ----  | ----   | ---- |
-| PredRNN  | 0.109 | 0.204 |
-| PredRNN-V2  | 0.071 | 0.139 |
-
-## Quantitative results on Traffic4Cast (Berlin)
-
-|                  | MSE (10^{-3}) |
-| ---------------- | --------------------- |
-| U-Net            | 6.992                 |
-| CrevNet          | 6.789                 |
-| U-Net+PredRNN-V2 | **5.135**             |
-
-[comment]:<## Quantitative results on the action-conditioned BAIR dataset>
-
-[comment]:<Frame-wise SSIM and PSNR for the predicted future 28 frames.>
-
-[comment]:<![bair_res](./pic/BAIR_results.png)>
+<p align="center">
+  <img src="pic/ST-LSTM_predRNN_V2.png" width="45%" />
+  <img src="pic/ST-GRU_predRNN_V2.png" width="45%" />
+</p>
 
 
-## Get Started
+## Motivation
 
-1. Install Python 3.6, PyTorch 1.9.0 for the main code. Also, install Tensorflow 2.1.0 for BAIR dataloader.
+While LSTM-based architectures provide strong long-term memory capabilities, they introduce a relatively large number of parameters and computational overhead.
 
-2. Download data. This repo contains code for three datasets: the [Moving Mnist dataset](https://onedrive.live.com/?authkey=%21AGzXjcOlzTQw158&id=FF7F539F0073B9E2%21124&cid=FF7F539F0073B9E2), the [KTH action dataset](https://drive.google.com/drive/folders/1_M1O4TuQOhYcNdXXuNoNjYyzGrSM9pBF?usp=sharing), and the BAIR dataset (30.1GB), which can be obtained by:
+GRUs are known to:
 
-   ```
-   wget http://rail.eecs.berkeley.edu/datasets/bair_robot_pushing_dataset_v0.tar
-   ```
+- require fewer parameters,
+- converge faster during training,
+- require less memory,
+- often achieve comparable performance on sequential tasks.
 
-3. Train the model. You can use the following bash script to train the model. The learned model will be saved in the `--save_dir` folder.
-  The generated future frames will be saved in the `--gen_frm_dir` folder.
+This project explores whether these advantages transfer to spatiotemporal predictive learning.
 
-4. You can get **pretrained models** from [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/d/72241e0046a74f81bf29/) or [Google Drive](https://drive.google.com/drive/folders/1jaEHcxo_UgvgwEWKi0ygX1SbODGz6PWw).
+## Experimental Setup
+
+We evaluate the proposed ST-GRU PredRNN-V2 using the **Moving MNIST** dataset.
+
+The model is trained following the original PredRNN-V2 experimental protocol:
+
+- Dataset: Moving MNIST
+- Training iterations: 80,000
+- Prediction task: future frame prediction
+- Evaluation metrics:
+  - Mean Squared Error (MSE)
+  - Structural Similarity Index (SSIM)
+  - Learned Perceptual Image Patch Similarity (LPIPS)
+  - Peak Signal-to-Noise Ratio (PSNR)
+
+## Results
+
+Our ST-GRU implementation successfully learns the spatiotemporal dynamics of Moving MNIST and produces realistic future frame predictions.
+
+Compared to existing methods:
+
+| Model | MSE ↓ | SSIM ↑ | LPIPS ↓ | PSNR ↑ |
+|------|------:|------:|------:|------:|
+| ConvLSTM | 103.3 | 0.707 | 0.156 | - |
+| PredRNN (ST-LSTM) | 56.8 | 0.867 | 0.107 | - |
+| PredRNN-V2 (ST-LSTM) | **48.4** | **0.891** | 0.071 | **20.047** |
+| ConvGRU | 57.8 | 0.839 | 0.091 | - |
+| ST-GRU PredRNN | **53.4** | **0.893** | **0.057** | - |
+| **Our ST-GRU PredRNN-V2** | **55.1** | **0.883** | **0.065** | **19.529** |
+
+Overall, our model achieves performance comparable to the original PredRNN while using a simplified recurrent architecture. Although the original PredRNN-V2 generally remains the strongest performer, the proposed ST-GRU demonstrates that a lighter recurrent design can preserve much of the predictive capability.
+
+## Repository Structure
+
 ```
-cd mnist_script/
-sh predrnn_mnist_train.sh
-sh predrnn_v2_mnist_train.sh
+core/
+    ST-GRU implementation
+    model definition
+    training utilities
 
-cd kth_script/
-sh predrnn_kth_train.sh
-sh predrnn_v2_kth_train.sh
+moving-mnist-data/
+    train set
+    test set
+    validation set
 
-cd bair_script/
-sh predrnn_bair_train.sh
-sh predrnn_v2_bair_train.sh
+mnist_script/
+    training scripts
+
+results/
+    generated predictions
 ```
+
+
+## Getting Started
+
+### Requirements
+
+- Python 3.6+
+- PyTorch 1.9 (or compatible)
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Dataset
+
+Download the **Moving MNIST** dataset and place it in the expected data directory.
+
+---
+
+## Training
+
+Train the ST-GRU model using
+
+```bash
+cd mnist_script
+sh train.sh
+```
+
+(or the corresponding training script included in this repository).
+
+Model checkpoints are saved to the configured checkpoint directory.
+
+---
+
+## Evaluation
+
+Run evaluation using
+
+```bash
+cd mnist_script
+sh test.sh
+```
+
+Generated predictions and evaluation metrics will be saved automatically.
+
+---
+
+## Key Contributions
+
+- Implementation of a novel **Spatiotemporal GRU (ST-GRU)** cell.
+- Replacement of PredRNN's ST-LSTM blocks with ST-GRU blocks.
+- Experimental comparison against PredRNN, PredRNN-V2, ConvLSTM and ConvGRU.
+- Evaluation on the Moving MNIST benchmark.
+
+---
+
+## Conclusion
+
+This work demonstrates that replacing PredRNN's ST-LSTM with a simpler ST-GRU architecture is feasible while maintaining competitive prediction quality. Although the original PredRNN-V2 still achieves the strongest overall performance, the proposed model provides a promising direction for reducing architectural complexity in spatiotemporal recurrent networks.
+
+---
+
+## Acknowledgements
+
+This project is based on the original PredRNN and PredRNN-V2 implementations:
+
+- Wang et al., *PredRNN: Recurrent Neural Networks for Predictive Learning Using Spatiotemporal LSTMs*, NeurIPS 2017.
+- Wang et al., *PredRNN: A Recurrent Neural Network for Spatiotemporal Predictive Learning*, TPAMI 2022.
+
+This repository contains a modified implementation developed for educational and research purposes.
+
+---
 
 ## Citation
 
-If you find this repo useful, please cite the following papers.
-```
-@inproceedings{wang2017predrnn,
-  title={{PredRNN}: Recurrent Neural Networks for Predictive Learning Using Spatiotemporal {LSTM}s},
-  author={Wang, Yunbo and Long, Mingsheng and Wang, Jianmin and Gao, Zhifeng and Yu, Philip S},
-  booktitle={Advances in Neural Information Processing Systems},
-  pages={879--888},
-  year={2017}
-}
-
-@misc{wang2021predrnn,
-      title={{PredRNN}: A Recurrent Neural Network for Spatiotemporal Predictive Learning}, 
-      author={Wang, Yunbo and Wu, Haixu and Zhang, Jianjin and Gao, Zhifeng and Wang, Jianmin and Yu, Philip S and Long, Mingsheng},
-      year={2021},
-      eprint={2103.09504},
-      archivePrefix={arXiv},
-}
-```
-
+If you use this implementation, please cite both the original PredRNN papers and acknowledge this ST-GRU adaptation where appropriate.

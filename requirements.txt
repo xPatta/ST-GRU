@@ -1,0 +1,9 @@
+numpy
+opencv-python
+Pillow
+matplotlib
+scikit-image
+scikit-learn
+lpips
+torch==1.9.0
+tensorflow==2.1.0
